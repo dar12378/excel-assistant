@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Excel Assistant ללא API</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <header class="hero">
+      <h1>Excel Assistant</h1>
+      <p>כתבי מה את רוצה לעשות באקסל וקבלי נוסחה מוכנה, בלי API ובלי שרת.</p>
+    </header>
+
+    <main class="card">
+      <label for="userPrompt" class="label">מה תרצי לעשות באקסל?</label>
+      <textarea
+        id="userPrompt"
+        placeholder='לדוגמה: תכתוב לי נוסחה שסופרת כמה פעמים Approved מופיע בעמודה C'
+      ></textarea>
+
+      <div class="buttons">
+        <button id="generateBtn">צור נוסחה</button>
+        <button id="clearBtn" class="secondary">נקה</button>
+      </div>
+
+      <div id="errorBox" class="error hidden"></div>
+
+      <section id="result" class="result hidden">
+        <div class="result-block">
+          <div class="result-header">
+            <h2>נוסחה</h2>
+            <button id="copyBtn" class="small-btn">העתק</button>
+          </div>
+          <pre id="formulaText" class="formula-box"></pre>
+        </div>
+
+        <div class="result-block">
+          <h2>הסבר</h2>
+          <p id="explanationText"></p>
+        </div>
+
+        <div class="result-block">
+          <h2>דוגמה</h2>
+          <p id="exampleText"></p>
+        </div>
+
+        <div class="result-block">
+          <h2>טיפים</h2>
+          <ul id="tipsList"></ul>
+        </div>
+      </section>
+    </main>
+
+    <section class="examples">
+      <h2>דוגמאות לבקשות</h2>
+      <div class="example-grid">
+        <button class="example-item">חבר את כל הערכים בעמודה B</button>
+        <button class="example-item">בדוק אם A2 גדול מ-100</button>
+        <button class="example-item">ספור כמה פעמים Yes מופיע בעמודה D</button>
+        <button class="example-item">חשב ממוצע של עמודה F</button>
+        <button class="example-item">מצא את הערך הגבוה ביותר בעמודה G</button>
+        <button class="example-item">חפש מחיר לפי קוד מוצר</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
