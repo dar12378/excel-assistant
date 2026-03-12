@@ -1,153 +1,104 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
-
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Excel Assistant Pro</title>
-
-<link rel="stylesheet" href="style.css">
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Excel Assistant Pro</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
-
-<div class="container">
-
-<header class="hero">
-
-<h1>Excel Assistant Pro</h1>
-
-<p>
-כתבי מה את רוצה לעשות באקסל ותקבלי נוסחה מוכנה.
-עובד בלי API ובלי שרת.
-</p>
-
-</header>
-
-
-<div class="grid">
-
-<section class="card">
-
-<label class="label">מה תרצי לעשות באקסל?</label>
-
-<textarea id="userPrompt"
-placeholder="לדוגמה: ספור כמה פעמים Approved מופיע בעמודה C"></textarea>
-
-
-<div class="row">
-
-<div>
-
-<label class="label">עמודת ברירת מחדל</label>
-
-<input id="defaultColumn" value="A">
-
-</div>
-
-</div>
-
-
-<div class="buttons">
-
-<button id="generateBtn" class="primary">צור נוסחה</button>
-
-<button id="multiBtn" class="success">כמה נוסחאות</button>
-
-<button id="clearBtn" class="secondary">נקה</button>
-
-</div>
-
-
-<div id="errorBox" class="error hidden"></div>
-
-
-
-<section id="singleResult" class="result hidden">
-
-<div class="result-block">
-
-<div class="result-header">
-
-<h2>נוסחה</h2>
-
-<button id="copyBtn" class="small-btn">העתק</button>
-
-</div>
-
-<pre id="formulaText" class="formula-box"></pre>
-
-</div>
-
-
-<div class="result-block">
-
-<h2>הסבר</h2>
-
-<p id="explanationText"></p>
-
-</div>
-
-
-<div class="result-block">
-
-<h2>דוגמה</h2>
-
-<p id="exampleText"></p>
-
-</div>
-
-
-<div class="result-block">
-
-<h2>טיפים</h2>
-
-<ul id="tipsList"></ul>
-
-</div>
-
-</section>
-
-
-<section id="multiResult" class="result hidden">
-
-<div class="result-block">
-
-<h2>נוסחאות אפשריות</h2>
-
-<div id="formulaGrid"></div>
-
-</div>
-
-</section>
-
-</section>
-
-
-
-<aside class="card">
-
-<h2>דוגמאות</h2>
-
-<div id="examplesList"></div>
-
-
-<h2>היסטוריה</h2>
-
-<div id="historyList"></div>
-
-<button id="clearHistoryBtn" class="danger">נקה היסטוריה</button>
-
-</aside>
-
-
-</div>
-
-</div>
-
-<script src="script.js"></script>
-
+  <div class="container">
+    <header class="hero">
+      <h1>Excel Assistant Pro</h1>
+      <p>כתבי מה את רוצה לעשות באקסל וקבלי נוסחה מוכנה — בלי API ובלי שרת.</p>
+    </header>
+
+    <div class="layout">
+      <main class="card main-card">
+        <label for="userPrompt" class="label">מה תרצי לעשות באקסל?</label>
+        <textarea
+          id="userPrompt"
+          placeholder="לדוגמה: ספור כמה פעמים Approved מופיע בעמודה C, או בדוק אם A2 גדול מ-100"
+        ></textarea>
+
+        <div class="controls">
+          <div class="field">
+            <label for="defaultColumn" class="label small-label">עמודת ברירת מחדל</label>
+            <input id="defaultColumn" type="text" maxlength="3" value="A" placeholder="A" />
+          </div>
+        </div>
+
+        <div class="buttons">
+          <button id="generateBtn" class="primary">צור נוסחה</button>
+          <button id="multiBtn" class="success">צור כמה נוסחאות</button>
+          <button id="clearBtn" class="secondary">נקה</button>
+        </div>
+
+        <div class="tags" id="quickTags">
+          <button type="button" class="tag">סכום</button>
+          <button type="button" class="tag">ממוצע</button>
+          <button type="button" class="tag">ספירה</button>
+          <button type="button" class="tag">IF</button>
+          <button type="button" class="tag">MAX</button>
+          <button type="button" class="tag">MIN</button>
+          <button type="button" class="tag">SUMIF</button>
+          <button type="button" class="tag">COUNTIFS</button>
+          <button type="button" class="tag">XLOOKUP</button>
+        </div>
+
+        <div id="errorBox" class="error hidden"></div>
+
+        <section id="singleResult" class="result hidden">
+          <div class="result-block">
+            <div class="result-header">
+              <h2>נוסחה</h2>
+              <button id="copyBtn" class="small-btn">העתק</button>
+            </div>
+            <pre id="formulaText" class="formula-box"></pre>
+          </div>
+
+          <div class="result-block">
+            <h2>הסבר</h2>
+            <p id="explanationText"></p>
+          </div>
+
+          <div class="result-block">
+            <h2>דוגמה</h2>
+            <p id="exampleText"></p>
+          </div>
+
+          <div class="result-block">
+            <h2>טיפים</h2>
+            <ul id="tipsList"></ul>
+          </div>
+        </section>
+
+        <section id="multiResult" class="result hidden">
+          <div class="result-block">
+            <div class="result-header">
+              <h2>נוסחאות אפשריות</h2>
+              <button id="copyAllBtn" class="small-btn green-btn">העתק הכל</button>
+            </div>
+            <div id="formulaGrid" class="formula-grid"></div>
+          </div>
+        </section>
+      </main>
+
+      <aside class="card side-card">
+        <div class="side-section">
+          <h2>דוגמאות</h2>
+          <div id="examplesList" class="list-box"></div>
+        </div>
+
+        <div class="side-section">
+          <h2>היסטוריה</h2>
+          <div id="historyList" class="list-box"></div>
+          <button id="clearHistoryBtn" class="danger full-width">נקה היסטוריה</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
