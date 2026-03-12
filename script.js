@@ -3,10 +3,15 @@ const generateBtn = document.getElementById("generateBtn");
 const multiBtn = document.getElementById("multiBtn");
 const clearBtn = document.getElementById("clearBtn");
 const clearHistoryBtn = document.getElementById("clearHistoryBtn");
+const fileInput = document.getElementById("fileInput");
 
 const errorBox = document.getElementById("errorBox");
+const fileStatus = document.getElementById("fileStatus");
+
 const singleResult = document.getElementById("singleResult");
 const multiResult = document.getElementById("multiResult");
+const columnsSection = document.getElementById("columnsSection");
+const previewSection = document.getElementById("previewSection");
 
 const formulaText = document.getElementById("formulaText");
 const explanationText = document.getElementById("explanationText");
@@ -21,17 +26,24 @@ const historyList = document.getElementById("historyList");
 const examplesList = document.getElementById("examplesList");
 const defaultColumnInput = document.getElementById("defaultColumn");
 const quickTags = document.getElementById("quickTags");
+const columnsList = document.getElementById("columnsList");
+const previewTable = document.getElementById("previewTable");
+const smartSuggestions = document.getElementById("smartSuggestions");
+
+let uploadedData = [];
+let uploadedColumns = [];
+let uploadedFileName = "";
 
 const EXAMPLES = [
-  "חבר את כל הערכים בעמודה B",
-  "חשב ממוצע של עמודה F",
-  "ספור כמה פעמים Approved מופיע בעמודה C",
+  "חבר את כל הערכים בעמודה Amount",
+  "חשב ממוצע של עמודה Score",
+  "ספור כמה פעמים Approved מופיע בעמודה Status",
   "בדוק אם A2 גדול מ-100",
-  "מצא את הערך הגבוה ביותר בעמודה G",
-  "מצא את הערך הנמוך ביותר בעמודה H",
+  "מצא את הערך הגבוה ביותר בעמודה Revenue",
+  "מצא את הערך הנמוך ביותר בעמודה Cost",
   "חפש מחיר לפי קוד מוצר",
-  "סכם את עמודה B רק אם בעמודה C כתוב Approved",
-  "ספור כמה שורות יש שבהן C הוא Approved וגם D הוא Yes"
+  "סכם את עמודה Amount רק אם בעמודה Status כתוב Approved",
+  "ספור כמה שורות יש שבהן Status הוא Approved וגם Active הוא Yes"
 ];
 
 function showError(message) {
@@ -42,6 +54,16 @@ function showError(message) {
 function hideError() {
   errorBox.classList.add("hidden");
   errorBox.textContent = "";
+}
+
+function showFileStatus(message) {
+  fileStatus.textContent = message;
+  fileStatus.classList.remove("hidden");
+}
+
+function hideFileStatus() {
+  fileStatus.classList.add("hidden");
+  fileStatus.textContent = "";
 }
 
 function clearSingleResult() {
@@ -57,9 +79,18 @@ function clearMultiResult() {
   formulaGrid.innerHTML = "";
 }
 
+function clearPreview() {
+  columnsSection.classList.add("hidden");
+  previewSection.classList.add("hidden");
+  columnsList.innerHTML = "";
+  previewTable.innerHTML = "";
+  smartSuggestions.innerHTML = `<div class="empty-state">העלי קובץ כדי לקבל הצעות חכמות לפי העמודות.</div>`;
+}
+
 function clearAll() {
   userPrompt.value = "";
   hideError();
+  hideFileStatus();
   clearSingleResult();
   clearMultiResult();
 }
@@ -68,15 +99,20 @@ function containsAny(text, words) {
   return words.some(word => text.includes(word));
 }
 
-function normalizeColumn(value) {
+function normalizeColumnName(value) {
   if (!value) return "A";
-  const clean = value.trim().toUpperCase().replace(/[^A-Z]/g, "");
+  return String(value).trim();
+}
+
+function normalizeExcelLetter(value) {
+  if (!value) return "A";
+  const clean = String(value).trim().toUpperCase().replace(/[^A-Z]/g, "");
   return clean || "A";
 }
 
-function detectColumn(text) {
-  const match = text.match(/עמודה\s*([A-Z]{1,3})/i);
-  return match ? normalizeColumn(match[1]) : null;
+function detectColumnByPhrase(text) {
+  const match = text.match(/עמודה\s*([A-Z]{1,3}|[A-Za-z_][A-Za-z0-9 _-]*)/i);
+  return match ? normalizeColumnName(match[1]) : null;
 }
 
 function detectCell(text) {
@@ -94,18 +130,30 @@ function excelFormula(name, args) {
   return `=${name.toUpperCase()}(${args})`;
 }
 
+function findUploadedColumnByName(prompt) {
+  const lower = prompt.toLowerCase();
+  for (const col of uploadedColumns) {
+    if (lower.includes(String(col).toLowerCase())) {
+      return col;
+    }
+  }
+  return null;
+}
+
 function getContext(prompt) {
   const range = detectRange(prompt);
-  const column = detectColumn(prompt) || normalizeColumn(defaultColumnInput.value) || "A";
-  const cell = detectCell(prompt) || `${column}2`;
-  const area = range || `${column}:${column}`;
+  const promptColumn = detectColumnByPhrase(prompt);
+  const uploadedColumn = findUploadedColumnByName(prompt);
+  const fallback = normalizeColumnName(defaultColumnInput.value) || "A";
+  const column = uploadedColumn || promptColumn || fallback;
+  const cell = detectCell(prompt) || "A2";
 
   return {
     text: prompt.toLowerCase(),
     column,
     cell,
     range,
-    area
+    area: range || column
   };
 }
 
@@ -120,33 +168,49 @@ function detectConditionValue(text) {
   return "Yes";
 }
 
+function columnRef(columnName) {
+  if (/^[A-Z]{1,3}$/.test(String(columnName).trim().toUpperCase())) {
+    return `${String(columnName).trim().toUpperCase()}:${String(columnName).trim().toUpperCase()}`;
+  }
+  return `[${columnName}]`;
+}
+
+function singleCellRef(cell) {
+  return cell;
+}
+
 function buildSingleFormula(prompt) {
   const ctx = getContext(prompt);
   const text = ctx.text;
   const conditionValue = detectConditionValue(text);
+  const col = columnRef(ctx.column);
 
   if (containsAny(text, ["countifs", "שני תנאים", "כמה תנאים", "וגם", "גם"])) {
+    const first = uploadedColumns[0] || "Status";
+    const second = uploadedColumns[1] || "Active";
     return makeResult(
       "COUNTIFS",
-      excelFormula("COUNTIFS", `C:C,"Approved",D:D,"Yes"`),
-      "הנוסחה סופרת שורות שמתאימות לשני תנאים במקביל: Approved בעמודה C וגם Yes בעמודה D.",
+      excelFormula("COUNTIFS", `${columnRef(first)},"Approved",${columnRef(second)},"Yes"`),
+      "הנוסחה סופרת שורות שמתאימות לשני תנאים במקביל.",
       "מתאים לדוחות סטטוסים, אישורים ומעקבים.",
       [
-        "אפשר לשנות את עמודות התנאים.",
-        "אפשר לשנות את ערכי התנאי לפי הצורך."
+        "אם טעון קובץ, אפשר להחליף את שמות העמודות לפי הכותרות האמיתיות.",
+        "אם אין קובץ, אפשר להשתמש בעמודות רגילות כמו C:C ו-D:D."
       ]
     );
   }
 
   if (containsAny(text, ["sumif", "סכם רק אם", "סכום רק אם", "סכום בתנאי"])) {
+    const sumColumn = uploadedColumns.find(c => /amount|sum|price|cost|revenue|total/i.test(String(c))) || uploadedColumns[0] || ctx.column;
+    const conditionColumn = uploadedColumns.find(c => /status|state|approved/i.test(String(c))) || uploadedColumns[1] || "Status";
     return makeResult(
       "SUMIF",
-      excelFormula("SUMIF", `C:C,"Approved",B:B`),
-      "הנוסחה מסכמת את עמודה B רק בשורות שבהן בעמודה C מופיע Approved.",
-      "מעולה לסיכום סכומים רק עבור רשומות מאושרות.",
+      excelFormula("SUMIF", `${columnRef(conditionColumn)},"Approved",${columnRef(sumColumn)}`),
+      "הנוסחה מסכמת ערכים רק בשורות שבהן מתקיים תנאי מסוים.",
+      "מעולה לסיכום סכומים רק עבור רשומות מאושרות או לפי סטטוס.",
       [
-        "העמודה הראשונה היא עמודת התנאי.",
-        "העמודה האחרונה היא עמודת הסכום."
+        "החלק הראשון הוא עמודת התנאי.",
+        "החלק האחרון הוא עמודת הסכומים."
       ]
     );
   }
@@ -154,12 +218,12 @@ function buildSingleFormula(prompt) {
   if (containsAny(text, ["חבר", "סכום", "סכם", "סכימה", "sum"])) {
     return makeResult(
       "SUM",
-      excelFormula("SUM", ctx.area),
-      `הנוסחה מחברת את כל הערכים בטווח ${ctx.area}.`,
-      "שימושי לסכומים, תקציבים, שעות, מכירות ועוד.",
+      excelFormula("SUM", col),
+      `הנוסחה מחברת את כל הערכים בעמודה או בטווח ${ctx.column}.`,
+      "שימושי לסכומים, מכירות, שעות, תקציבים ועוד.",
       [
-        "אפשר לעבוד על עמודה שלמה או על טווח מוגדר.",
-        "Excel מתעלם מתאים ריקים."
+        "אם הקובץ מכיל עמודת Amount או Revenue, כדאי לבחור בה.",
+        "אפשר גם לעבוד על טווח כמו A2:A50."
       ]
     );
   }
@@ -167,12 +231,12 @@ function buildSingleFormula(prompt) {
   if (containsAny(text, ["ממוצע", "average"])) {
     return makeResult(
       "AVERAGE",
-      excelFormula("AVERAGE", ctx.area),
-      `הנוסחה מחשבת ממוצע של הערכים בטווח ${ctx.area}.`,
-      "מתאים לציונים, עלויות, ביצועים ועוד.",
+      excelFormula("AVERAGE", col),
+      `הנוסחה מחשבת ממוצע של הערכים בעמודה או בטווח ${ctx.column}.`,
+      "מתאים לציונים, מחירים, עלויות וביצועים.",
       [
-        "אפשר לצמצם לטווח מסוים כמו B2:B20.",
-        "תאים ריקים בדרך כלל לא ייכללו בחישוב."
+        "תאים ריקים בדרך כלל לא נכללים בממוצע.",
+        "כדאי לבחור עמודה מספרית."
       ]
     );
   }
@@ -180,12 +244,12 @@ function buildSingleFormula(prompt) {
   if (containsAny(text, ["הכי גבוה", "גבוה ביותר", "מקסימום", "max"])) {
     return makeResult(
       "MAX",
-      excelFormula("MAX", ctx.area),
-      `הנוסחה מחזירה את הערך הגבוה ביותר בטווח ${ctx.area}.`,
-      "מתאים למציאת שיא של מחיר, ציון, כמות או זמן.",
+      excelFormula("MAX", col),
+      `הנוסחה מחזירה את הערך הגבוה ביותר בעמודה או בטווח ${ctx.column}.`,
+      "מתאים למציאת שיא של מחיר, ציון או הכנסה.",
       [
-        "לערך הנמוך ביותר משתמשים ב-MIN.",
-        "אפשר לעבוד גם על טווח מצומצם."
+        "השתמשי בעמודה מספרית בלבד.",
+        "לערך הנמוך ביותר השתמשי ב-MIN."
       ]
     );
   }
@@ -193,12 +257,12 @@ function buildSingleFormula(prompt) {
   if (containsAny(text, ["הכי נמוך", "נמוך ביותר", "מינימום", "min"])) {
     return makeResult(
       "MIN",
-      excelFormula("MIN", ctx.area),
-      `הנוסחה מחזירה את הערך הנמוך ביותר בטווח ${ctx.area}.`,
-      "מתאים למציאת מינימום של מחיר, ציון או כל ערך מספרי.",
+      excelFormula("MIN", col),
+      `הנוסחה מחזירה את הערך הנמוך ביותר בעמודה או בטווח ${ctx.column}.`,
+      "מתאים למציאת מינימום של מחיר, ציון או עלות.",
       [
-        "לערך הגבוה ביותר משתמשים ב-MAX.",
-        "אפשר לעבוד גם על טווח מצומצם."
+        "השתמשי בעמודה מספרית בלבד.",
+        "לערך הגבוה ביותר השתמשי ב-MAX."
       ]
     );
   }
@@ -206,12 +270,12 @@ function buildSingleFormula(prompt) {
   if (containsAny(text, ["ספור", "ספירה", "כמה פעמים", "countif", "count"])) {
     return makeResult(
       "COUNTIF",
-      excelFormula("COUNTIF", `${ctx.column}:${ctx.column},"${conditionValue}"`),
+      excelFormula("COUNTIF", `${col},"${conditionValue}"`),
       `הנוסחה סופרת כמה פעמים הערך "${conditionValue}" מופיע בעמודה ${ctx.column}.`,
       "מתאים לספירת סטטוסים, תשובות, ערכים חוזרים ועוד.",
       [
         "אפשר להחליף את ערך החיפוש לכל טקסט אחר.",
-        'אפשר להשתמש גם בתנאים כמו ">100".'
+        'אפשר גם להשתמש בתנאים כמו ">100".'
       ]
     );
   }
@@ -219,8 +283,8 @@ function buildSingleFormula(prompt) {
   if (containsAny(text, ["בדוק אם", "אם", "גדול", "קטן", "שווה", "if"])) {
     return makeResult(
       "IF",
-      excelFormula("IF", `${ctx.cell}>100,"כן","לא"`),
-      `הנוסחה בודקת אם הערך בתא ${ctx.cell} גדול מ-100. אם כן, יוחזר "כן", אחרת "לא".`,
+      excelFormula("IF", `${singleCellRef(ctx.cell)}>100,"כן","לא"`),
+      `הנוסחה בודקת אם הערך בתא ${ctx.cell} גדול מ-100.`,
       "מתאים לבדיקות סטטוס, חריגות, ספים ותנאים עסקיים.",
       [
         "אפשר לשנות את 100 לכל מספר אחר.",
@@ -230,13 +294,15 @@ function buildSingleFormula(prompt) {
   }
 
   if (containsAny(text, ["חפש", "חיפוש", "קוד מוצר", "מצא מחיר", "lookup", "xlookup", "vlookup"])) {
+    const first = uploadedColumns[0] || "Code";
+    const second = uploadedColumns[1] || "Price";
     return makeResult(
       "XLOOKUP",
-      excelFormula("XLOOKUP", `A2,Products!A:A,Products!C:C,"לא נמצא"`),
-      "הנוסחה מחפשת את הערך בתא A2 בעמודה A של הגיליון Products ומחזירה את הערך המתאים מעמודה C.",
+      excelFormula("XLOOKUP", `A2,${columnRef(first)},${columnRef(second)},"לא נמצא"`),
+      "הנוסחה מחפשת ערך לפי מפתח ומחזירה ערך מתאים מעמודה אחרת.",
       "מתאים לחיפוש מחיר, שם מוצר, לקוח, סטטוס או כל מידע לפי מזהה.",
       [
-        "אפשר לשנות את שם הגיליון Products.",
+        "אם נטען קובץ, כדאי לבחור עמודת מזהה ועמודת תוצאה מהקובץ.",
         "אם אין אצלך XLOOKUP, אפשר להחליף ל-VLOOKUP."
       ]
     );
@@ -244,11 +310,11 @@ function buildSingleFormula(prompt) {
 
   return makeResult(
     "ברירת מחדל",
-    excelFormula("SUM", `${ctx.column}:${ctx.column}`),
+    excelFormula("SUM", col),
     `לא זוהתה בקשה מדויקת, לכן הוחזרה נוסחת ברירת מחדל לעמודה ${ctx.column}.`,
-    "נסי לכתוב בקשה ברורה יותר, למשל: חשב ממוצע של עמודה B.",
+    "נסי לכתוב בקשה ברורה יותר, למשל: חשב ממוצע של עמודה Amount.",
     [
-      "כדאי לציין עמודה, תא או טווח.",
+      "כדאי לציין שם עמודה שמופיע בקובץ.",
       "כדאי לציין גם תנאי אם יש צורך."
     ]
   );
@@ -256,17 +322,20 @@ function buildSingleFormula(prompt) {
 
 function buildMultipleFormulas(prompt) {
   const ctx = getContext(prompt);
+  const col = columnRef(ctx.column);
+  const statusCol = uploadedColumns.find(c => /status|state/i.test(String(c))) || "Status";
+  const valueCol = uploadedColumns.find(c => /amount|price|revenue|cost|score|total/i.test(String(c))) || ctx.column;
 
   return [
-    makeResult("SUM", excelFormula("SUM", ctx.area), `סכום של ${ctx.area}.`, "", []),
-    makeResult("AVERAGE", excelFormula("AVERAGE", ctx.area), `ממוצע של ${ctx.area}.`, "", []),
-    makeResult("MAX", excelFormula("MAX", ctx.area), `מקסימום בטווח ${ctx.area}.`, "", []),
-    makeResult("MIN", excelFormula("MIN", ctx.area), `מינימום בטווח ${ctx.area}.`, "", []),
-    makeResult("COUNTIF", excelFormula("COUNTIF", `${ctx.column}:${ctx.column},"Yes"`), `ספירת Yes בעמודה ${ctx.column}.`, "", []),
+    makeResult("SUM", excelFormula("SUM", col), `סכום של ${ctx.column}.`, "", []),
+    makeResult("AVERAGE", excelFormula("AVERAGE", col), `ממוצע של ${ctx.column}.`, "", []),
+    makeResult("MAX", excelFormula("MAX", col), `מקסימום בעמודה ${ctx.column}.`, "", []),
+    makeResult("MIN", excelFormula("MIN", col), `מינימום בעמודה ${ctx.column}.`, "", []),
+    makeResult("COUNTIF", excelFormula("COUNTIF", `${col},"Yes"`), `ספירת Yes בעמודה ${ctx.column}.`, "", []),
     makeResult("IF", excelFormula("IF", `${ctx.cell}>100,"כן","לא"`), `בדיקה אם ${ctx.cell} גדול מ-100.`, "", []),
-    makeResult("SUMIF", excelFormula("SUMIF", `C:C,"Approved",B:B`), "סכום לפי תנאי.", "", []),
-    makeResult("COUNTIFS", excelFormula("COUNTIFS", `C:C,"Approved",D:D,"Yes"`), "ספירה לפי שני תנאים.", "", []),
-    makeResult("XLOOKUP", excelFormula("XLOOKUP", `A2,Products!A:A,Products!C:C,"לא נמצא"`), "חיפוש ערך לפי מפתח.", "", [])
+    makeResult("SUMIF", excelFormula("SUMIF", `${columnRef(statusCol)},"Approved",${columnRef(valueCol)}`), "סכום לפי תנאי.", "", []),
+    makeResult("COUNTIFS", excelFormula("COUNTIFS", `${columnRef(statusCol)},"Approved",${columnRef(statusCol)},"Approved"`), "ספירה לפי תנאים.", "", []),
+    makeResult("XLOOKUP", excelFormula("XLOOKUP", `A2,${columnRef(uploadedColumns[0] || "Code")},${columnRef(uploadedColumns[1] || "Value")},"לא נמצא"`), "חיפוש ערך לפי מפתח.", "", [])
   ];
 }
 
@@ -348,6 +417,218 @@ function renderExamples() {
   });
 }
 
+function renderColumns() {
+  columnsList.innerHTML = "";
+  if (!uploadedColumns.length) {
+    columnsSection.classList.add("hidden");
+    return;
+  }
+
+  uploadedColumns.forEach(col => {
+    const chip = document.createElement("div");
+    chip.className = "column-chip";
+    chip.textContent = col;
+    chip.addEventListener("click", () => {
+      userPrompt.value = `חשב ממוצע של עמודה ${col}`;
+      userPrompt.focus();
+    });
+    columnsList.appendChild(chip);
+  });
+
+  columnsSection.classList.remove("hidden");
+}
+
+function renderPreview() {
+  previewTable.innerHTML = "";
+
+  if (!uploadedData.length) {
+    previewSection.classList.add("hidden");
+    return;
+  }
+
+  const headers = uploadedColumns;
+  const thead = document.createElement("thead");
+  const headRow = document.createElement("tr");
+
+  headers.forEach(header => {
+    const th = document.createElement("th");
+    th.textContent = header;
+    headRow.appendChild(th);
+  });
+
+  thead.appendChild(headRow);
+  previewTable.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+  uploadedData.slice(0, 5).forEach(row => {
+    const tr = document.createElement("tr");
+    headers.forEach(header => {
+      const td = document.createElement("td");
+      td.textContent = row[header] ?? "";
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+
+  previewTable.appendChild(tbody);
+  previewSection.classList.remove("hidden");
+}
+
+function renderSmartSuggestions() {
+  smartSuggestions.innerHTML = "";
+
+  if (!uploadedColumns.length) {
+    smartSuggestions.innerHTML = `<div class="empty-state">העלי קובץ כדי לקבל הצעות חכמות לפי העמודות.</div>`;
+    return;
+  }
+
+  const suggestions = [];
+
+  const numericLike = uploadedColumns.filter(col =>
+    /amount|price|cost|revenue|total|score|qty|quantity|hours|sum|value/i.test(String(col))
+  );
+
+  const statusLike = uploadedColumns.filter(col =>
+    /status|state|approved|active|flag|result/i.test(String(col))
+  );
+
+  numericLike.forEach(col => {
+    suggestions.push(`חשב ממוצע של עמודה ${col}`);
+    suggestions.push(`מצא את הערך הגבוה ביותר בעמודה ${col}`);
+    suggestions.push(`חבר את כל הערכים בעמודה ${col}`);
+  });
+
+  statusLike.forEach(col => {
+    suggestions.push(`ספור כמה פעמים Approved מופיע בעמודה ${col}`);
+  });
+
+  if (uploadedColumns.length >= 2) {
+    suggestions.push(`חפש ערך לפי ${uploadedColumns[0]}`);
+    suggestions.push(`סכם את עמודה ${uploadedColumns[1]} רק אם בעמודה ${uploadedColumns[0]} כתוב Approved`);
+  }
+
+  const unique = [...new Set(suggestions)].slice(0, 10);
+
+  unique.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "suggestion-item";
+    div.textContent = item;
+    div.addEventListener("click", () => {
+      userPrompt.value = item;
+      userPrompt.focus();
+    });
+    smartSuggestions.appendChild(div);
+  });
+
+  if (!unique.length) {
+    smartSuggestions.innerHTML = `<div class="empty-state">לא נמצאו עדיין הצעות אוטומטיות.</div>`;
+  }
+}
+
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/).filter(line => line.trim() !== "");
+  if (!lines.length) return [];
+
+  const rows = lines.map(line => {
+    const values = [];
+    let current = "";
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const next = line[i + 1];
+
+      if (char === '"' && inQuotes && next === '"') {
+        current += '"';
+        i++;
+      } else if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === "," && !inQuotes) {
+        values.push(current);
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+
+    values.push(current);
+    return values.map(v => v.trim());
+  });
+
+  const headers = rows[0];
+  return rows.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((header, index) => {
+      obj[header || `Column${index + 1}`] = row[index] ?? "";
+    });
+    return obj;
+  });
+}
+
+function loadFromObjects(data, fileName) {
+  if (!Array.isArray(data) || !data.length) {
+    showError("הקובץ נטען אבל לא נמצאו בו נתונים.");
+    return;
+  }
+
+  uploadedData = data.filter(row => row && typeof row === "object");
+  uploadedColumns = Object.keys(uploadedData[0] || {});
+  uploadedFileName = fileName || "";
+
+  showFileStatus(`הקובץ "${uploadedFileName}" נטען בהצלחה. זוהו ${uploadedColumns.length} עמודות ו-${uploadedData.length} שורות.`);
+  renderColumns();
+  renderPreview();
+  renderSmartSuggestions();
+
+  if (uploadedColumns.length) {
+    defaultColumnInput.value = uploadedColumns[0];
+  }
+}
+
+function handleFileUpload(file) {
+  if (!file) return;
+
+  hideError();
+  hideFileStatus();
+
+  const name = file.name.toLowerCase();
+
+  if (name.endsWith(".csv")) {
+    const reader = new FileReader();
+    reader.onload = event => {
+      try {
+        const text = event.target.result;
+        const data = parseCSV(text);
+        loadFromObjects(data, file.name);
+      } catch (error) {
+        showError("לא ניתן לקרוא את קובץ ה-CSV.");
+      }
+    };
+    reader.readAsText(file, "utf-8");
+    return;
+  }
+
+  if (name.endsWith(".xlsx") || name.endsWith(".xls")) {
+    const reader = new FileReader();
+    reader.onload = event => {
+      try {
+        const data = new Uint8Array(event.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const json = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+        loadFromObjects(json, file.name);
+      } catch (error) {
+        showError("לא ניתן לקרוא את קובץ האקסל.");
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    return;
+  }
+
+  showError("יש להעלות קובץ CSV, XLSX או XLS בלבד.");
+}
+
 generateBtn.addEventListener("click", () => {
   const prompt = userPrompt.value.trim();
 
@@ -422,7 +703,7 @@ clearHistoryBtn.addEventListener("click", () => {
   renderHistory();
 });
 
-quickTags.addEventListener("click", (event) => {
+quickTags.addEventListener("click", event => {
   const tag = event.target.closest(".tag");
   if (!tag) return;
 
@@ -432,5 +713,11 @@ quickTags.addEventListener("click", (event) => {
   userPrompt.focus();
 });
 
+fileInput.addEventListener("change", event => {
+  const file = event.target.files[0];
+  handleFileUpload(file);
+});
+
 renderExamples();
 renderHistory();
+renderSmartSuggestions();
