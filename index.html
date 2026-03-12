@@ -3,50 +3,61 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Excel Assistant Pro</title>
+  <title>Excel Assistant Pro + File Reader</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="container">
     <header class="hero">
       <h1>Excel Assistant Pro</h1>
-      <p>כתבי מה את רוצה לעשות באקסל וקבלי נוסחה מוכנה — בלי API ובלי שרת.</p>
+      <p>
+        כתבי מה את רוצה לעשות באקסל, או העלי קובץ CSV / XLSX,
+        וקבלי נוסחאות מתאימות לפי הנתונים והעמודות שבקובץ.
+      </p>
     </header>
 
     <div class="layout">
       <main class="card main-card">
-        <label for="userPrompt" class="label">מה תרצי לעשות באקסל?</label>
-        <textarea
-          id="userPrompt"
-          placeholder="לדוגמה: ספור כמה פעמים Approved מופיע בעמודה C, או בדוק אם A2 גדול מ-100"
-        ></textarea>
+        <section class="block">
+          <label for="userPrompt" class="label">מה תרצי לעשות באקסל?</label>
+          <textarea
+            id="userPrompt"
+            placeholder="לדוגמה: ספור כמה פעמים Approved מופיע בעמודה Status, או חשב ממוצע של Amount"
+          ></textarea>
 
-        <div class="controls">
-          <div class="field">
-            <label for="defaultColumn" class="label small-label">עמודת ברירת מחדל</label>
-            <input id="defaultColumn" type="text" maxlength="3" value="A" placeholder="A" />
+          <div class="controls">
+            <div class="field">
+              <label for="defaultColumn" class="label small-label">עמודת ברירת מחדל</label>
+              <input id="defaultColumn" type="text" maxlength="20" value="A" placeholder="A או Status" />
+            </div>
+
+            <div class="field">
+              <label for="fileInput" class="label small-label">העלי קובץ CSV / XLSX</label>
+              <input id="fileInput" type="file" accept=".csv,.xlsx,.xls" />
+            </div>
           </div>
-        </div>
 
-        <div class="buttons">
-          <button id="generateBtn" class="primary">צור נוסחה</button>
-          <button id="multiBtn" class="success">צור כמה נוסחאות</button>
-          <button id="clearBtn" class="secondary">נקה</button>
-        </div>
+          <div class="buttons">
+            <button id="generateBtn" class="primary">צור נוסחה</button>
+            <button id="multiBtn" class="success">צור כמה נוסחאות</button>
+            <button id="clearBtn" class="secondary">נקה</button>
+          </div>
 
-        <div class="tags" id="quickTags">
-          <button type="button" class="tag">סכום</button>
-          <button type="button" class="tag">ממוצע</button>
-          <button type="button" class="tag">ספירה</button>
-          <button type="button" class="tag">IF</button>
-          <button type="button" class="tag">MAX</button>
-          <button type="button" class="tag">MIN</button>
-          <button type="button" class="tag">SUMIF</button>
-          <button type="button" class="tag">COUNTIFS</button>
-          <button type="button" class="tag">XLOOKUP</button>
-        </div>
+          <div class="tags" id="quickTags">
+            <button type="button" class="tag">סכום</button>
+            <button type="button" class="tag">ממוצע</button>
+            <button type="button" class="tag">ספירה</button>
+            <button type="button" class="tag">IF</button>
+            <button type="button" class="tag">MAX</button>
+            <button type="button" class="tag">MIN</button>
+            <button type="button" class="tag">SUMIF</button>
+            <button type="button" class="tag">COUNTIFS</button>
+            <button type="button" class="tag">XLOOKUP</button>
+          </div>
 
-        <div id="errorBox" class="error hidden"></div>
+          <div id="errorBox" class="error hidden"></div>
+          <div id="fileStatus" class="file-status hidden"></div>
+        </section>
 
         <section id="singleResult" class="result hidden">
           <div class="result-block">
@@ -82,6 +93,24 @@
             <div id="formulaGrid" class="formula-grid"></div>
           </div>
         </section>
+
+        <section id="columnsSection" class="result hidden">
+          <div class="result-block">
+            <h2>עמודות שזוהו בקובץ</h2>
+            <div id="columnsList" class="columns-list"></div>
+          </div>
+        </section>
+
+        <section id="previewSection" class="result hidden">
+          <div class="result-block">
+            <div class="result-header">
+              <h2>תצוגה מקדימה של הנתונים</h2>
+            </div>
+            <div class="table-wrapper">
+              <table id="previewTable" class="preview-table"></table>
+            </div>
+          </div>
+        </section>
       </main>
 
       <aside class="card side-card">
@@ -95,10 +124,18 @@
           <div id="historyList" class="list-box"></div>
           <button id="clearHistoryBtn" class="danger full-width">נקה היסטוריה</button>
         </div>
+
+        <div class="side-section">
+          <h2>הצעות לפי הקובץ</h2>
+          <div id="smartSuggestions" class="list-box">
+            <div class="empty-state">העלי קובץ כדי לקבל הצעות חכמות לפי העמודות.</div>
+          </div>
+        </div>
       </aside>
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
