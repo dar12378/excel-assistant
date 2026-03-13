@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Excel Assistant Pro + File Reader</title>
+  <title>Excel Hebrew Pro</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="container">
     <header class="hero">
-      <h1>Excel Assistant Pro</h1>
+      <h1>Excel Hebrew Pro</h1>
       <p>
-        כתבי מה את רוצה לעשות באקסל, או העלי קובץ CSV / XLSX,
-        וקבלי נוסחאות מתאימות לפי הנתונים והעמודות שבקובץ.
+        אפליקציה מקומית לקריאה מהירה של קבצי Excel/CSV גדולים, עם תמיכה בעברית,
+        זיהוי עמודות, הצעת נוסחאות וייצוא קובץ חדש.
       </p>
     </header>
 
@@ -22,24 +22,32 @@
           <label for="userPrompt" class="label">מה תרצי לעשות באקסל?</label>
           <textarea
             id="userPrompt"
-            placeholder="לדוגמה: ספור כמה פעמים Approved מופיע בעמודה Status, או חשב ממוצע של Amount"
+            placeholder="לדוגמה: חשב ממוצע של סכום, ספור כמה פעמים Approved מופיע בסטטוס, או סכם הכנסות רק אם סטטוס הוא מאושר"
           ></textarea>
 
           <div class="controls">
             <div class="field">
               <label for="defaultColumn" class="label small-label">עמודת ברירת מחדל</label>
-              <input id="defaultColumn" type="text" maxlength="20" value="A" placeholder="A או Status" />
+              <input id="defaultColumn" type="text" maxlength="40" value="A" placeholder="A או שם עמודה" />
             </div>
 
             <div class="field">
-              <label for="fileInput" class="label small-label">העלי קובץ CSV / XLSX</label>
+              <label for="fileInput" class="label small-label">העלי קובץ CSV / XLSX / XLS</label>
               <input id="fileInput" type="file" accept=".csv,.xlsx,.xls" />
+            </div>
+
+            <div class="field">
+              <label for="sheetSelect" class="label small-label">בחירת גיליון</label>
+              <select id="sheetSelect" disabled>
+                <option value="">אין גיליון</option>
+              </select>
             </div>
           </div>
 
           <div class="buttons">
             <button id="generateBtn" class="primary">צור נוסחה</button>
             <button id="multiBtn" class="success">צור כמה נוסחאות</button>
+            <button id="exportBtn" class="purple">ייצא קובץ עם נוסחאות</button>
             <button id="clearBtn" class="secondary">נקה</button>
           </div>
 
@@ -56,7 +64,33 @@
           </div>
 
           <div id="errorBox" class="error hidden"></div>
-          <div id="fileStatus" class="file-status hidden"></div>
+          <div id="statusBox" class="status hidden"></div>
+          <div id="progressBox" class="progress hidden"></div>
+        </section>
+
+        <section id="fileSummarySection" class="result hidden">
+          <div class="result-block">
+            <h2>סיכום הקובץ</h2>
+            <div id="fileSummary" class="summary-grid"></div>
+          </div>
+        </section>
+
+        <section id="columnsSection" class="result hidden">
+          <div class="result-block">
+            <h2>עמודות שזוהו</h2>
+            <div id="columnsList" class="columns-list"></div>
+          </div>
+        </section>
+
+        <section id="previewSection" class="result hidden">
+          <div class="result-block">
+            <div class="result-header">
+              <h2>תצוגה מקדימה</h2>
+            </div>
+            <div class="table-wrapper">
+              <table id="previewTable" class="preview-table"></table>
+            </div>
+          </div>
         </section>
 
         <section id="singleResult" class="result hidden">
@@ -93,24 +127,6 @@
             <div id="formulaGrid" class="formula-grid"></div>
           </div>
         </section>
-
-        <section id="columnsSection" class="result hidden">
-          <div class="result-block">
-            <h2>עמודות שזוהו בקובץ</h2>
-            <div id="columnsList" class="columns-list"></div>
-          </div>
-        </section>
-
-        <section id="previewSection" class="result hidden">
-          <div class="result-block">
-            <div class="result-header">
-              <h2>תצוגה מקדימה של הנתונים</h2>
-            </div>
-            <div class="table-wrapper">
-              <table id="previewTable" class="preview-table"></table>
-            </div>
-          </div>
-        </section>
       </main>
 
       <aside class="card side-card">
@@ -120,16 +136,16 @@
         </div>
 
         <div class="side-section">
-          <h2>היסטוריה</h2>
-          <div id="historyList" class="list-box"></div>
-          <button id="clearHistoryBtn" class="danger full-width">נקה היסטוריה</button>
+          <h2>הצעות חכמות לפי הקובץ</h2>
+          <div id="smartSuggestions" class="list-box">
+            <div class="empty-state">העלי קובץ כדי לקבל הצעות חכמות.</div>
+          </div>
         </div>
 
         <div class="side-section">
-          <h2>הצעות לפי הקובץ</h2>
-          <div id="smartSuggestions" class="list-box">
-            <div class="empty-state">העלי קובץ כדי לקבל הצעות חכמות לפי העמודות.</div>
-          </div>
+          <h2>היסטוריה</h2>
+          <div id="historyList" class="list-box"></div>
+          <button id="clearHistoryBtn" class="danger full-width">נקה היסטוריה</button>
         </div>
       </aside>
     </div>
