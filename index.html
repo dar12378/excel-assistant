@@ -3,40 +3,42 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Excel Hebrew Pro</title>
+  <title>Excel Hebrew Desktop</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="container">
     <header class="hero">
-      <h1>Excel Hebrew Pro</h1>
+      <h1>Excel Hebrew Desktop</h1>
       <p>
-        אפליקציה מקומית לקריאה מהירה של קבצי Excel/CSV גדולים, עם תמיכה בעברית,
-        זיהוי עמודות, הצעת נוסחאות וייצוא קובץ חדש.
+        אפליקציית דסקטופ לעבודה מהירה עם קבצי אקסל גדולים בעברית:
+        טעינה, ניתוח, זיהוי עמודות, הצעת נוסחאות וייצוא.
       </p>
     </header>
 
     <div class="layout">
       <main class="card main-card">
         <section class="block">
+          <div class="buttons top-buttons">
+            <button id="openFileBtn" class="primary">פתחי קובץ</button>
+            <button id="generateBtn" class="success">צור נוסחה</button>
+            <button id="multiBtn" class="purple">צור כמה נוסחאות</button>
+            <button id="exportBtn" class="secondary">ייצא קובץ נוסחאות</button>
+          </div>
+
           <label for="userPrompt" class="label">מה תרצי לעשות באקסל?</label>
           <textarea
             id="userPrompt"
-            placeholder="לדוגמה: חשב ממוצע של סכום, ספור כמה פעמים Approved מופיע בסטטוס, או סכם הכנסות רק אם סטטוס הוא מאושר"
+            placeholder="לדוגמה: חשב ממוצע של סכום, ספור כמה פעמים Approved מופיע בסטטוס, סכם עלות רק אם מצב הוא מאושר"
           ></textarea>
 
           <div class="controls">
-            <div class="field">
+            <div>
               <label for="defaultColumn" class="label small-label">עמודת ברירת מחדל</label>
-              <input id="defaultColumn" type="text" maxlength="40" value="A" placeholder="A או שם עמודה" />
+              <input id="defaultColumn" type="text" value="A" />
             </div>
 
-            <div class="field">
-              <label for="fileInput" class="label small-label">העלי קובץ CSV / XLSX / XLS</label>
-              <input id="fileInput" type="file" accept=".csv,.xlsx,.xls" />
-            </div>
-
-            <div class="field">
+            <div>
               <label for="sheetSelect" class="label small-label">בחירת גיליון</label>
               <select id="sheetSelect" disabled>
                 <option value="">אין גיליון</option>
@@ -44,28 +46,8 @@
             </div>
           </div>
 
-          <div class="buttons">
-            <button id="generateBtn" class="primary">צור נוסחה</button>
-            <button id="multiBtn" class="success">צור כמה נוסחאות</button>
-            <button id="exportBtn" class="purple">ייצא קובץ עם נוסחאות</button>
-            <button id="clearBtn" class="secondary">נקה</button>
-          </div>
-
-          <div class="tags" id="quickTags">
-            <button type="button" class="tag">סכום</button>
-            <button type="button" class="tag">ממוצע</button>
-            <button type="button" class="tag">ספירה</button>
-            <button type="button" class="tag">IF</button>
-            <button type="button" class="tag">MAX</button>
-            <button type="button" class="tag">MIN</button>
-            <button type="button" class="tag">SUMIF</button>
-            <button type="button" class="tag">COUNTIFS</button>
-            <button type="button" class="tag">XLOOKUP</button>
-          </div>
-
-          <div id="errorBox" class="error hidden"></div>
           <div id="statusBox" class="status hidden"></div>
-          <div id="progressBox" class="progress hidden"></div>
+          <div id="errorBox" class="error hidden"></div>
         </section>
 
         <section id="fileSummarySection" class="result hidden">
@@ -84,9 +66,7 @@
 
         <section id="previewSection" class="result hidden">
           <div class="result-block">
-            <div class="result-header">
-              <h2>תצוגה מקדימה</h2>
-            </div>
+            <h2>תצוגה מקדימה</h2>
             <div class="table-wrapper">
               <table id="previewTable" class="preview-table"></table>
             </div>
@@ -122,7 +102,7 @@
           <div class="result-block">
             <div class="result-header">
               <h2>נוסחאות אפשריות</h2>
-              <button id="copyAllBtn" class="small-btn green-btn">העתק הכל</button>
+              <button id="copyAllBtn" class="small-btn">העתק הכל</button>
             </div>
             <div id="formulaGrid" class="formula-grid"></div>
           </div>
@@ -136,9 +116,9 @@
         </div>
 
         <div class="side-section">
-          <h2>הצעות חכמות לפי הקובץ</h2>
+          <h2>הצעות חכמות</h2>
           <div id="smartSuggestions" class="list-box">
-            <div class="empty-state">העלי קובץ כדי לקבל הצעות חכמות.</div>
+            <div class="empty-state">פתחי קובץ כדי לקבל הצעות.</div>
           </div>
         </div>
 
@@ -151,7 +131,7 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-  <script src="script.js"></script>
+  <script src="app.js"></script>
+  <script src="renderer.js"></script>
 </body>
 </html>
