@@ -1,0 +1,15 @@
+{
+  "name": "excel-hebrew-desktop",
+  "version": "1.0.0",
+  "description": "Desktop Excel assistant for large Hebrew spreadsheets",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "latest"
+  },
+  "dependencies": {
+    "xlsx": "^0.18.5"
+  }
+}
