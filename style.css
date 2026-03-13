@@ -10,7 +10,7 @@ body {
 }
 
 .container {
-  max-width: 1320px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 24px;
 }
@@ -82,16 +82,9 @@ textarea {
   line-height: 1.6;
 }
 
-textarea:focus,
-input:focus,
-select:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
-}
-
 .controls {
   display: grid;
-  grid-template-columns: 220px 1fr 220px;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
   margin-top: 14px;
 }
@@ -100,7 +93,10 @@ select:focus {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 16px;
+}
+
+.top-buttons {
+  margin-bottom: 16px;
 }
 
 button {
@@ -130,36 +126,8 @@ button:hover {
   font-size: 14px;
 }
 
-.green-btn {
-  background: #0f766e;
-}
-
-.full-width {
-  width: 100%;
-  margin-top: 12px;
-}
-
-.tags,
-.columns-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 16px;
-}
-
-.tag,
-.column-chip {
-  background: #eff6ff;
-  color: #1d4ed8;
-  border: 1px solid #bfdbfe;
-  border-radius: 999px;
-  padding: 8px 12px;
-  font-size: 13px;
-}
-
 .error,
-.status,
-.progress {
+.status {
   margin-top: 16px;
   padding: 12px;
   border-radius: 14px;
@@ -175,12 +143,6 @@ button:hover {
   background: #ecfeff;
   color: #155e75;
   border: 1px solid #a5f3fc;
-}
-
-.progress {
-  background: #eff6ff;
-  color: #1d4ed8;
-  border: 1px solid #bfdbfe;
 }
 
 .hidden {
@@ -208,11 +170,6 @@ button:hover {
   margin-bottom: 10px;
 }
 
-.result-block h2 {
-  margin: 0;
-  font-size: 18px;
-}
-
 .formula-box {
   background: #0f172a;
   color: #f8fafc;
@@ -232,7 +189,10 @@ button:hover {
   margin-top: 12px;
 }
 
-.formula-card {
+.formula-card,
+.example-item,
+.history-item,
+.suggestion-item {
   background: white;
   border: 1px solid #dbe4f0;
   border-radius: 16px;
@@ -241,13 +201,11 @@ button:hover {
 
 .formula-card h3 {
   margin: 0 0 8px;
-  font-size: 16px;
 }
 
 .formula-card p {
   margin: 0 0 10px;
   color: #475569;
-  line-height: 1.5;
 }
 
 .formula-card pre {
@@ -256,10 +214,9 @@ button:hover {
   color: white;
   padding: 12px;
   border-radius: 12px;
-  white-space: pre-wrap;
-  word-break: break-word;
   direction: ltr;
   text-align: left;
+  white-space: pre-wrap;
 }
 
 .side-section + .side-section {
@@ -270,23 +227,6 @@ button:hover {
   display: grid;
   gap: 10px;
   margin-top: 12px;
-}
-
-.example-item,
-.history-item,
-.suggestion-item {
-  background: white;
-  border: 1px solid #dbe4f0;
-  border-radius: 14px;
-  padding: 12px;
-  cursor: pointer;
-  transition: 0.15s ease;
-}
-
-.example-item:hover,
-.history-item:hover,
-.suggestion-item:hover {
-  background: #f8fbff;
 }
 
 .summary-grid {
@@ -304,20 +244,32 @@ button:hover {
 
 .summary-card strong {
   display: block;
-  font-size: 13px;
   color: #64748b;
   margin-bottom: 6px;
+  font-size: 13px;
 }
 
 .summary-card span {
   font-size: 18px;
-  color: #0f172a;
   font-weight: 700;
+}
+
+.columns-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.column-chip {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  padding: 8px 12px;
 }
 
 .table-wrapper {
   overflow-x: auto;
-  margin-top: 10px;
 }
 
 .preview-table {
@@ -332,7 +284,6 @@ button:hover {
   border: 1px solid #dbe4f0;
   padding: 10px;
   text-align: right;
-  vertical-align: top;
 }
 
 .preview-table th {
@@ -340,10 +291,14 @@ button:hover {
   color: #1e3a8a;
 }
 
+.full-width {
+  width: 100%;
+  margin-top: 12px;
+}
+
 .empty-state {
   color: #64748b;
   font-size: 14px;
-  padding: 8px 0;
 }
 
 ul {
@@ -351,31 +306,20 @@ ul {
   padding-right: 20px;
 }
 
-li {
-  margin-bottom: 6px;
-}
-
 @media (max-width: 1100px) {
   .layout {
     grid-template-columns: 1fr;
   }
-
-  .controls {
-    grid-template-columns: 1fr;
-  }
-
-  .summary-grid {
-    grid-template-columns: repeat(2, minmax(120px, 1fr));
-  }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 700px) {
   .container {
     padding: 14px;
   }
 
-  .hero h1 {
-    font-size: 28px;
+  .controls,
+  .summary-grid {
+    grid-template-columns: 1fr;
   }
 
   .buttons {
@@ -384,14 +328,5 @@ li {
 
   button {
     width: 100%;
-  }
-
-  .result-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .summary-grid {
-    grid-template-columns: 1fr;
   }
 }
