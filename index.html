@@ -3,135 +3,149 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Excel Hebrew Desktop</title>
+  <title>Helper Excel Reading</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="container">
-    <header class="hero">
-      <h1>Excel Hebrew Desktop</h1>
-      <p>
-        אפליקציית דסקטופ לעבודה מהירה עם קבצי אקסל גדולים בעברית:
-        טעינה, ניתוח, זיהוי עמודות, הצעת נוסחאות וייצוא.
-      </p>
-    </header>
-
-    <div class="layout">
-      <main class="card main-card">
-        <section class="block">
-          <div class="buttons top-buttons">
-            <button id="openFileBtn" class="primary">פתחי קובץ</button>
-            <button id="generateBtn" class="success">צור נוסחה</button>
-            <button id="multiBtn" class="purple">צור כמה נוסחאות</button>
-            <button id="exportBtn" class="secondary">ייצא קובץ נוסחאות</button>
-          </div>
-
-          <label for="userPrompt" class="label">מה תרצי לעשות באקסל?</label>
-          <textarea
-            id="userPrompt"
-            placeholder="לדוגמה: חשב ממוצע של סכום, ספור כמה פעמים Approved מופיע בסטטוס, סכם עלות רק אם מצב הוא מאושר"
-          ></textarea>
-
-          <div class="controls">
-            <div>
-              <label for="defaultColumn" class="label small-label">עמודת ברירת מחדל</label>
-              <input id="defaultColumn" type="text" value="A" />
-            </div>
-
-            <div>
-              <label for="sheetSelect" class="label small-label">בחירת גיליון</label>
-              <select id="sheetSelect" disabled>
-                <option value="">אין גיליון</option>
-              </select>
-            </div>
-          </div>
-
-          <div id="statusBox" class="status hidden"></div>
-          <div id="errorBox" class="error hidden"></div>
-        </section>
-
-        <section id="fileSummarySection" class="result hidden">
-          <div class="result-block">
-            <h2>סיכום הקובץ</h2>
-            <div id="fileSummary" class="summary-grid"></div>
-          </div>
-        </section>
-
-        <section id="columnsSection" class="result hidden">
-          <div class="result-block">
-            <h2>עמודות שזוהו</h2>
-            <div id="columnsList" class="columns-list"></div>
-          </div>
-        </section>
-
-        <section id="previewSection" class="result hidden">
-          <div class="result-block">
-            <h2>תצוגה מקדימה</h2>
-            <div class="table-wrapper">
-              <table id="previewTable" class="preview-table"></table>
-            </div>
-          </div>
-        </section>
-
-        <section id="singleResult" class="result hidden">
-          <div class="result-block">
-            <div class="result-header">
-              <h2>נוסחה</h2>
-              <button id="copyBtn" class="small-btn">העתק</button>
-            </div>
-            <pre id="formulaText" class="formula-box"></pre>
-          </div>
-
-          <div class="result-block">
-            <h2>הסבר</h2>
-            <p id="explanationText"></p>
-          </div>
-
-          <div class="result-block">
-            <h2>דוגמה</h2>
-            <p id="exampleText"></p>
-          </div>
-
-          <div class="result-block">
-            <h2>טיפים</h2>
-            <ul id="tipsList"></ul>
-          </div>
-        </section>
-
-        <section id="multiResult" class="result hidden">
-          <div class="result-block">
-            <div class="result-header">
-              <h2>נוסחאות אפשריות</h2>
-              <button id="copyAllBtn" class="small-btn">העתק הכל</button>
-            </div>
-            <div id="formulaGrid" class="formula-grid"></div>
-          </div>
-        </section>
-      </main>
-
-      <aside class="card side-card">
-        <div class="side-section">
-          <h2>דוגמאות</h2>
-          <div id="examplesList" class="list-box"></div>
+    <section class="hero">
+      <div class="hero-top">
+        <div>
+          <h1 id="appTitle">Helper Excel Reading</h1>
+          <p id="appSubtitle">
+            כתבי או אמרי מה את רוצה לעשות באקסל, העלי קובץ, וקבלי עזרה חכמה בעברית או באנגלית.
+          </p>
         </div>
 
-        <div class="side-section">
-          <h2>הצעות חכמות</h2>
-          <div id="smartSuggestions" class="list-box">
-            <div class="empty-state">פתחי קובץ כדי לקבל הצעות.</div>
-          </div>
+        <div class="lang-box">
+          <label for="languageSelect" id="languageLabel">שפה</label>
+          <select id="languageSelect">
+            <option value="he">עברית</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="top-row">
+        <div>
+          <label class="section-label" id="promptLabel" for="userPrompt">מה תרצי לעשות באקסל?</label>
+          <textarea id="userPrompt" placeholder="לדוגמה: תקן לי את הנוסחה, סכם את הקובץ, מצא שגיאות, או חשב ממוצע של סכום"></textarea>
         </div>
 
-        <div class="side-section">
-          <h2>היסטוריה</h2>
-          <div id="historyList" class="list-box"></div>
-          <button id="clearHistoryBtn" class="danger full-width">נקה היסטוריה</button>
+        <div class="field-block">
+          <label class="section-label" id="defaultColumnLabel" for="defaultColumn">עמודת ברירת מחדל</label>
+          <input id="defaultColumn" type="text" value="A" maxlength="50" placeholder="A או שם עמודה" />
         </div>
-      </aside>
-    </div>
+      </div>
+
+      <div class="buttons">
+        <button id="generateBtn" class="btn-primary" type="button">צור נוסחה</button>
+        <button id="analyzeBtn" class="btn-green" type="button">נתח בקשה</button>
+        <button id="reviewFileBtn" class="btn-green" type="button">בדוק את הקובץ</button>
+        <button id="multiBtn" class="btn-green" type="button">כמה נוסחאות</button>
+        <button id="fixFormulaBtn" class="btn-light" type="button">תקן נוסחה</button>
+        <button id="uploadBtn" class="btn-light" type="button">העלאת קובץ</button>
+        <button id="voiceBtn" class="btn-light" type="button">דיבור</button>
+        <button id="clearBtn" class="btn-light" type="button">נקה</button>
+        <button id="clearHistoryBtn" class="btn-danger" type="button">נקה היסטוריה</button>
+      </div>
+
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" class="hidden">
+
+      <div id="statusBox" class="status-line"></div>
+
+      <section class="result">
+        <div class="box">
+          <div class="box-header">
+            <h2 class="box-title" id="assistantAnswerTitle">תשובת האפליקציה</h2>
+            <button id="copyAnswerBtn" class="btn-dark" type="button">העתק</button>
+          </div>
+          <div id="assistantAnswer" class="assistant-output"></div>
+        </div>
+      </section>
+
+      <section id="singleResult" class="result">
+        <div class="box">
+          <div class="box-header">
+            <h2 class="box-title" id="formulaTitle">נוסחה</h2>
+            <button id="copyBtn" class="btn-dark" type="button">העתק</button>
+          </div>
+          <div id="formulaText" class="formula-output"></div>
+        </div>
+
+        <div class="box">
+          <h2 class="box-title" id="explanationTitle">הסבר</h2>
+          <p id="explanationText" class="muted"></p>
+        </div>
+
+        <div class="box">
+          <h2 class="box-title" id="exampleTitle">דוגמה</h2>
+          <p id="exampleText" class="muted"></p>
+        </div>
+
+        <div class="box">
+          <h2 class="box-title" id="tipsTitle">טיפים</h2>
+          <ul id="tipsList"></ul>
+        </div>
+      </section>
+
+      <section id="multiResult" class="result hidden">
+        <div class="box">
+          <div class="box-header">
+            <h2 class="box-title" id="multiTitle">נוסחאות אפשריות</h2>
+            <button id="copyAllBtn" class="btn-dark" type="button">העתק הכל</button>
+          </div>
+          <div id="formulaGrid" class="multi-grid"></div>
+        </div>
+      </section>
+
+      <section id="fileInsightSection" class="result hidden">
+        <div class="box">
+          <h2 class="box-title" id="fileInsightTitle">הבנת הקובץ</h2>
+          <div id="fileInsightText" class="assistant-output"></div>
+        </div>
+      </section>
+
+      <section id="fileIssuesSection" class="result hidden">
+        <div class="box">
+          <h2 class="box-title" id="fileIssuesTitle">שגיאות ותיקונים מומלצים</h2>
+          <div id="fileIssuesText" class="assistant-output"></div>
+        </div>
+      </section>
+
+      <section id="columnsSection" class="result hidden">
+        <div class="box">
+          <h2 class="box-title" id="columnsTitle">עמודות שזוהו בקובץ</h2>
+          <div id="columnsList" class="columns-wrap"></div>
+        </div>
+      </section>
+
+      <section id="previewSection" class="result hidden">
+        <div class="box">
+          <h2 class="box-title" id="previewTitle">תצוגה מקדימה של הקובץ</h2>
+          <div class="table-wrap">
+            <table id="previewTable"></table>
+          </div>
+        </div>
+      </section>
+
+      <section class="result">
+        <div class="box">
+          <h2 class="box-title" id="suggestionsTitle">הצעות מהירות</h2>
+          <div id="suggestionsList" class="suggestions-grid"></div>
+        </div>
+
+        <div class="box">
+          <h2 class="box-title" id="historyTitle">היסטוריה</h2>
+          <div id="historyList" class="history-grid"></div>
+        </div>
+      </section>
+    </section>
   </div>
 
-  <script src="app.js"></script>
-  <script src="renderer.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
