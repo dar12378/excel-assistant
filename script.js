@@ -78,7 +78,10 @@ const UI_TEXT = {
     history: "היסטוריה",
     copy: "העתק",
     copyAll: "העתק הכל",
-    copied: "הועתק"
+    copied: "הועתק",
+    noHistory: "אין עדיין היסטוריה.",
+    noFileYet: "לא נטען עדיין קובץ.",
+    assistantDefault: "כאן יופיעו הסברים, סיכומים, ותשובות של האפליקציה."
   },
   en: {
     title: "Helper Excel Reading",
@@ -110,7 +113,10 @@ const UI_TEXT = {
     history: "History",
     copy: "Copy",
     copyAll: "Copy all",
-    copied: "Copied"
+    copied: "Copied",
+    noHistory: "No history yet.",
+    noFileYet: "No file uploaded yet.",
+    assistantDefault: "Explanations, summaries, and answers from the app will appear here."
   }
 };
 
@@ -131,9 +137,9 @@ const DEFAULT_SUGGESTIONS = {
     "Fix this formula =sum(a:a",
     "Calculate average of amount",
     "Count how many Approved values appear in status",
-    "Help me understand what this file is for",
+    "Help me understand what the file is for",
     "Complete a formula for a tracking table",
-    "Check if any columns are missing"
+    "Check whether any columns are missing"
   ]
 };
 
@@ -147,11 +153,8 @@ const COMMON_CORRECTIONS = {
     "ממוצה": "ממוצע",
     "העלהת": "העלאת",
     "תאויות": "טעויות",
-    "שומעת": "שומעת",
     "שגיעות": "שגיאות",
-    "תיכון": "תיקון",
-    "היתמצאות": "התמצאות",
-    "הלקוח": "הלקוח"
+    "תיכון": "תיקון"
   },
   en: {
     "formla": "formula",
@@ -168,47 +171,12 @@ function t(key) {
   return UI_TEXT[currentLang][key];
 }
 
-function updateLanguageUI() {
-  document.documentElement.lang = currentLang;
-  document.documentElement.dir = currentLang === "he" ? "rtl" : "ltr";
+function normalizeText(text) {
+  return String(text || "").toLowerCase().trim();
+}
 
-  document.getElementById("appTitle").textContent = t("title");
-  document.getElementById("appSubtitle").textContent = t("subtitle");
-  document.getElementById("languageLabel").textContent = t("language");
-  document.getElementById("promptLabel").textContent = t("promptLabel");
-  userPrompt.placeholder = t("promptPlaceholder");
-  document.getElementById("defaultColumnLabel").textContent = t("defaultColumn");
-  generateBtn.textContent = t("generate");
-  analyzeBtn.textContent = t("analyze");
-  reviewFileBtn.textContent = t("reviewFile");
-  multiBtn.textContent = t("multi");
-  fixFormulaBtn.textContent = t("fixFormula");
-  uploadBtn.textContent = t("upload");
-  voiceBtn.textContent = t("voice");
-  clearBtn.textContent = t("clear");
-  clearHistoryBtn.textContent = t("clearHistory");
-  document.getElementById("assistantAnswerTitle").textContent = t("assistantAnswer");
-  document.getElementById("formulaTitle").textContent = t("formula");
-  document.getElementById("explanationTitle").textContent = t("explanation");
-  document.getElementById("exampleTitle").textContent = t("example");
-  document.getElementById("tipsTitle").textContent = t("tips");
-  document.getElementById("multiTitle").textContent = t("multiTitle");
-  document.getElementById("fileInsightTitle").textContent = t("fileInsight");
-  document.getElementById("fileIssuesTitle").textContent = t("fileIssues");
-  document.getElementById("columnsTitle").textContent = t("columns");
-  document.getElementById("previewTitle").textContent = t("preview");
-  document.getElementById("suggestionsTitle").textContent = t("suggestions");
-  document.getElementById("historyTitle").textContent = t("history");
-  copyBtn.textContent = t("copy");
-  copyAllBtn.textContent = t("copyAll");
-  copyAnswerBtn.textContent = t("copy");
-
-  renderSuggestions();
-  renderHistory();
-  if (excelRows.length) {
-    renderFileInsight();
-    renderFileReview();
-  }
+function containsAny(text, words) {
+  return words.some(word => text.includes(word));
 }
 
 function showStatus(message, type = "info") {
@@ -221,18 +189,10 @@ function clearStatus() {
   statusBox.className = "status-line";
 }
 
-function normalizeText(text) {
-  return String(text || "").toLowerCase().trim();
-}
-
-function containsAny(text, words) {
-  return words.some(word => text.includes(word));
-}
-
 function applySpellingCorrections(text) {
   let fixed = String(text || "");
   const map = COMMON_CORRECTIONS[currentLang];
-  Object.keys(map).forEach(wrong => {
+  Object.keys(map).forEach((wrong) => {
     const regex = new RegExp(wrong, "gi");
     fixed = fixed.replace(regex, map[wrong]);
   });
@@ -307,7 +267,7 @@ function getContext(prompt) {
 
 function getNumericColumns() {
   if (!excelRows.length || !excelColumns.length) return [];
-  return excelColumns.filter(col => {
+  return excelColumns.filter((col) => {
     const sample = excelRows.slice(0, 80).map(row => row[col]).filter(v => v !== "" && v != null);
     if (!sample.length) return false;
     const numericCount = sample.filter(v => !isNaN(Number(String(v).replace(/,/g, "")))).length;
@@ -317,7 +277,7 @@ function getNumericColumns() {
 
 function getDateColumns() {
   if (!excelRows.length || !excelColumns.length) return [];
-  return excelColumns.filter(col => {
+  return excelColumns.filter((col) => {
     const sample = excelRows.slice(0, 50).map(row => row[col]).filter(v => v !== "" && v != null);
     if (!sample.length) return false;
     const dateCount = sample.filter(v => !isNaN(Date.parse(v))).length;
@@ -334,21 +294,27 @@ function guessFilePurpose() {
 
   const lowerCols = excelColumns.map(c => normalizeText(c));
 
-  if (lowerCols.some(c => c.includes("status") || c.includes("סטטוס")) &&
-      lowerCols.some(c => c.includes("amount") || c.includes("סכום") || c.includes("price") || c.includes("מחיר"))) {
+  if (
+    lowerCols.some(c => c.includes("status") || c.includes("סטטוס")) &&
+    lowerCols.some(c => c.includes("amount") || c.includes("סכום") || c.includes("price") || c.includes("מחיר"))
+  ) {
     return currentLang === "he"
       ? "זה נראה כמו קובץ מעקב עסקי או דוח ביצועים עם סטטוסים וסכומים."
       : "This looks like a business tracking or performance report file with statuses and amounts.";
   }
 
-  if (lowerCols.some(c => c.includes("date") || c.includes("תאריך")) &&
-      lowerCols.some(c => c.includes("name") || c.includes("שם"))) {
+  if (
+    lowerCols.some(c => c.includes("date") || c.includes("תאריך")) &&
+    lowerCols.some(c => c.includes("name") || c.includes("שם"))
+  ) {
     return currentLang === "he"
       ? "זה נראה כמו קובץ רשומות, משימות או פעילות לפי תאריכים."
       : "This looks like a records, tasks, or activity file organized by dates.";
   }
 
-  if (lowerCols.some(c => c.includes("inventory") || c.includes("מלאי") || c.includes("qty") || c.includes("quantity"))) {
+  if (
+    lowerCols.some(c => c.includes("inventory") || c.includes("מלאי") || c.includes("qty") || c.includes("quantity"))
+  ) {
     return currentLang === "he"
       ? "זה נראה כמו קובץ מלאי או ניהול כמויות."
       : "This looks like an inventory or quantity management file.";
@@ -400,7 +366,7 @@ function reviewFileIssues() {
   const messages = [];
   const numericColumns = getNumericColumns();
 
-  excelColumns.forEach(col => {
+  excelColumns.forEach((col) => {
     const values = excelRows.map(row => row[col]);
     const emptyCount = values.filter(v => v === "" || v == null).length;
     const duplicateCount = values.filter((v, i, arr) => v !== "" && arr.indexOf(v) !== i).length;
@@ -418,7 +384,7 @@ function reviewFileIssues() {
     }
   });
 
-  numericColumns.forEach(col => {
+  numericColumns.forEach((col) => {
     const values = excelRows.map(row => row[col]).filter(v => v !== "" && v != null);
     const invalid = values.filter(v => isNaN(Number(String(v).replace(/,/g, ""))));
     if (invalid.length) {
@@ -445,59 +411,6 @@ function reviewFileIssues() {
     : "\n\nRecommendation: review columns with empty cells, duplicate values, or numeric columns containing text before important calculations.";
 
   return messages.join("\n") + recommendation;
-}
-
-function buildAssistantAnswer(prompt, result) {
-  const fixedPrompt = applySpellingCorrections(prompt);
-  const purpose = guessFilePurpose();
-
-  if (containsAny(normalizeText(fixedPrompt), currentLang === "he"
-    ? ["סכם", "תסכם", "סיכום", "כתוב לי סיכום", "מה הקובץ", "למה הקובץ משמש"]
-    : ["summarize", "summary", "what is this file for", "what is the file for"])) {
-    return summarizeFile();
-  }
-
-  if (containsAny(normalizeText(fixedPrompt), currentLang === "he"
-    ? ["שגיאות", "טעויות", "בדוק קובץ", "בדוק שגיאות", "תיקון קובץ"]
-    : ["errors", "issues", "review file", "check file", "fix file"])) {
-    return reviewFileIssues();
-  }
-
-  if (currentLang === "he") {
-    return [
-      `הבנתי את הבקשה שלך כך: ${fixedPrompt}`,
-      ``,
-      `הנוסחה שהכי מתאימה כרגע היא:`,
-      `${result.formula}`,
-      ``,
-      `לפי מבנה הקובץ, נראה ש-${purpose}`,
-      ``,
-      `אני יכול לעזור כאן ב:`,
-      `- השלמת נוסחאות`,
-      `- תיקון נוסחאות`,
-      `- תיקון שגיאות כתיב בבקשה`,
-      `- זיהוי שגיאות נפוצות בקובץ`,
-      `- סיכום מבנה הקובץ`,
-      `- הצעת צעדים להשלמת האקסל`
-    ].join("\n");
-  }
-
-  return [
-    `I understood your request as: ${fixedPrompt}`,
-    ``,
-    `The formula that fits best right now is:`,
-    `${result.formula}`,
-    ``,
-    `Based on the file structure, it seems that ${purpose}`,
-    ``,
-    `I can help here with:`,
-    `- completing formulas`,
-    `- fixing formulas`,
-    `- correcting spelling mistakes in the request`,
-    `- detecting common file issues`,
-    `- summarizing the file structure`,
-    `- suggesting how to complete the spreadsheet`
-  ].join("\n");
 }
 
 function fixFormula(raw) {
@@ -739,7 +652,7 @@ function showSingleResult(data) {
   exampleText.textContent = data.example;
 
   tipsList.innerHTML = "";
-  (data.tips || []).forEach(tip => {
+  (data.tips || []).forEach((tip) => {
     const li = document.createElement("li");
     li.textContent = tip;
     tipsList.appendChild(li);
@@ -751,7 +664,7 @@ function showSingleResult(data) {
 
 function showMultiResults(items) {
   formulaGrid.innerHTML = "";
-  items.forEach(item => {
+  items.forEach((item) => {
     const div = document.createElement("div");
     div.className = "multi-item";
     div.innerHTML = `
@@ -764,120 +677,11 @@ function showMultiResults(items) {
   multiResult.classList.remove("hidden");
 }
 
-function renderSuggestions() {
-  suggestionsList.innerHTML = "";
-  const source = excelColumns.length
-    ? [
-        currentLang === "he" ? `חשב ממוצע של ${excelColumns[0]}` : `Calculate average of ${excelColumns[0]}`,
-        currentLang === "he" ? `מצא שגיאות בקובץ` : `Find issues in the file`,
-        currentLang === "he" ? `סכם את הקובץ` : `Summarize the file`,
-        currentLang === "he" ? `עזור לי להבין למה הקובץ משמש` : `Help me understand what the file is for`,
-        currentLang === "he" ? `תקן לי את הנוסחה =sum(a:a` : `Fix this formula =sum(a:a`
-      ]
-    : DEFAULT_SUGGESTIONS[currentLang];
-
-  source.forEach(item => {
-    const div = document.createElement("div");
-    div.className = "suggestion-item";
-    div.textContent = item;
-    div.addEventListener("click", () => {
-      userPrompt.value = item;
-      userPrompt.focus();
-    });
-    suggestionsList.appendChild(div);
-  });
-}
-
-function renderColumns() {
-  columnsList.innerHTML = "";
-
-  if (!excelColumns.length) {
-    columnsSection.classList.add("hidden");
-    return;
-  }
-
-  excelColumns.forEach(col => {
-    const chip = document.createElement("button");
-    chip.type = "button";
-    chip.className = "column-chip";
-    chip.textContent = col;
-    chip.addEventListener("click", () => {
-      userPrompt.value = currentLang === "he" ? `חשב ממוצע של ${col}` : `Calculate average of ${col}`;
-      defaultColumnInput.value = col;
-      userPrompt.focus();
-    });
-    columnsList.appendChild(chip);
-  });
-
-  columnsSection.classList.remove("hidden");
-}
-
-function renderPreview() {
-  previewTable.innerHTML = "";
-
-  if (!excelRows.length || !excelColumns.length) {
-    previewSection.classList.add("hidden");
-    return;
-  }
-
-  const thead = document.createElement("thead");
-  const trHead = document.createElement("tr");
-
-  excelColumns.forEach(col => {
-    const th = document.createElement("th");
-    th.textContent = col;
-    trHead.appendChild(th);
-  });
-
-  thead.appendChild(trHead);
-  previewTable.appendChild(thead);
-
-  const tbody = document.createElement("tbody");
-
-  excelRows.slice(0, 5).forEach(row => {
-    const tr = document.createElement("tr");
-    excelColumns.forEach(col => {
-      const td = document.createElement("td");
-      td.textContent = row[col] ?? "";
-      tr.appendChild(td);
-    });
-    tbody.appendChild(tr);
-  });
-
-  previewTable.appendChild(tbody);
-  previewSection.classList.remove("hidden");
-}
-
-function renderFileInsight() {
-  fileInsightText.textContent = summarizeFile();
-  fileInsightSection.classList.remove("hidden");
-}
-
-function renderFileReview() {
-  fileIssuesText.textContent = reviewFileIssues();
-  fileIssuesSection.classList.remove("hidden");
-}
-
-function clearAll() {
-  userPrompt.value = "";
-  defaultColumnInput.value = excelColumns[0] || "A";
-  formulaText.textContent = "";
-  explanationText.textContent = "";
-  exampleText.textContent = "";
-  tipsList.innerHTML = "";
-  formulaGrid.innerHTML = "";
-  assistantAnswer.textContent = currentLang === "he"
-    ? "כאן יופיעו הסברים, סיכומים, ותשובות של האפליקציה."
-    : "Explanations, summaries, and answers from the app will appear here.";
-  multiResult.classList.add("hidden");
-  clearStatus();
-}
-
 function readCsvText(text) {
   const lines = text.split(/\r?\n/).filter(line => line.trim() !== "");
   if (!lines.length) return [];
 
-  const rows = lines.map(line => {
+  const rows = lines.map((line) => {
     const values = [];
     let current = "";
     let inQuotes = false;
@@ -904,7 +708,7 @@ function readCsvText(text) {
   });
 
   const headers = rows[0];
-  return rows.slice(1).map(row => {
+  return rows.slice(1).map((row) => {
     const obj = {};
     headers.forEach((header, index) => {
       obj[header || `Column${index + 1}`] = row[index] ?? "";
@@ -939,6 +743,143 @@ function loadRows(rows, fileName) {
   );
 }
 
+function renderColumns() {
+  columnsList.innerHTML = "";
+
+  if (!excelColumns.length) {
+    columnsSection.classList.add("hidden");
+    return;
+  }
+
+  excelColumns.forEach((col) => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "column-chip";
+    chip.textContent = col;
+    chip.addEventListener("click", () => {
+      userPrompt.value = currentLang === "he" ? `חשב ממוצע של ${col}` : `Calculate average of ${col}`;
+      defaultColumnInput.value = col;
+      userPrompt.focus();
+    });
+    columnsList.appendChild(chip);
+  });
+
+  columnsSection.classList.remove("hidden");
+}
+
+function renderPreview() {
+  previewTable.innerHTML = "";
+
+  if (!excelRows.length || !excelColumns.length) {
+    previewSection.classList.add("hidden");
+    return;
+  }
+
+  const thead = document.createElement("thead");
+  const trHead = document.createElement("tr");
+
+  excelColumns.forEach((col) => {
+    const th = document.createElement("th");
+    th.textContent = col;
+    trHead.appendChild(th);
+  });
+
+  thead.appendChild(trHead);
+  previewTable.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+
+  excelRows.slice(0, 5).forEach((row) => {
+    const tr = document.createElement("tr");
+    excelColumns.forEach((col) => {
+      const td = document.createElement("td");
+      td.textContent = row[col] ?? "";
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+
+  previewTable.appendChild(tbody);
+  previewSection.classList.remove("hidden");
+}
+
+function renderFileInsight() {
+  fileInsightText.textContent = summarizeFile();
+  fileInsightSection.classList.remove("hidden");
+}
+
+function renderFileReview() {
+  fileIssuesText.textContent = reviewFileIssues();
+  fileIssuesSection.classList.remove("hidden");
+}
+
+function renderSuggestions() {
+  suggestionsList.innerHTML = "";
+  const source = excelColumns.length
+    ? [
+        currentLang === "he" ? `חשב ממוצע של ${excelColumns[0]}` : `Calculate average of ${excelColumns[0]}`,
+        currentLang === "he" ? "מצא שגיאות בקובץ" : "Find issues in the file",
+        currentLang === "he" ? "סכם את הקובץ" : "Summarize the file",
+        currentLang === "he" ? "עזור לי להבין למה הקובץ משמש" : "Help me understand what the file is for",
+        currentLang === "he" ? "תקן לי את הנוסחה =sum(a:a" : "Fix this formula =sum(a:a"
+      ]
+    : DEFAULT_SUGGESTIONS[currentLang];
+
+  source.forEach((item) => {
+    const div = document.createElement("div");
+    div.className = "suggestion-item";
+    div.textContent = item;
+    div.addEventListener("click", () => {
+      userPrompt.value = item;
+      userPrompt.focus();
+    });
+    suggestionsList.appendChild(div);
+  });
+}
+
+function renderHistory() {
+  const key = currentLang === "he" ? "helper_excel_reading_history" : "helper_excel_reading_history_en";
+  const history = JSON.parse(localStorage.getItem(key) || "[]");
+  historyList.innerHTML = "";
+
+  if (!history.length) {
+    historyList.innerHTML = `<div class="muted">${t("noHistory")}</div>`;
+    return;
+  }
+
+  history.forEach((item) => {
+    const div = document.createElement("div");
+    div.className = "history-item";
+    div.textContent = item;
+    div.addEventListener("click", () => {
+      userPrompt.value = item;
+      userPrompt.focus();
+    });
+    historyList.appendChild(div);
+  });
+}
+
+function saveHistory(text) {
+  const key = currentLang === "he" ? "helper_excel_reading_history" : "helper_excel_reading_history_en";
+  const history = JSON.parse(localStorage.getItem(key) || "[]");
+  const updated = [text, ...history.filter(item => item !== text)].slice(0, 10);
+  localStorage.setItem(key, JSON.stringify(updated));
+  renderHistory();
+}
+
+function clearAll() {
+  userPrompt.value = "";
+  defaultColumnInput.value = excelColumns[0] || "A";
+  formulaText.textContent = "";
+  explanationText.textContent = "";
+  exampleText.textContent = "";
+  tipsList.innerHTML = "";
+  formulaGrid.innerHTML = "";
+  assistantAnswer.textContent = t("assistantDefault");
+  multiResult.classList.add("hidden");
+  clearStatus();
+}
+
 function startVoiceInput() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
@@ -957,7 +898,6 @@ function startVoiceInput() {
   recognition.maxAlternatives = 1;
 
   showStatus(currentLang === "he" ? "מקשיב..." : "Listening...");
-
   recognition.start();
 
   recognition.onresult = function (event) {
@@ -969,6 +909,53 @@ function startVoiceInput() {
   recognition.onerror = function () {
     showStatus(currentLang === "he" ? "לא הצלחתי לקלוט דיבור." : "Could not capture speech.", "error");
   };
+}
+
+function updateLanguageUI() {
+  document.documentElement.lang = currentLang;
+  document.documentElement.dir = currentLang === "he" ? "rtl" : "ltr";
+
+  document.getElementById("appTitle").textContent = t("title");
+  document.getElementById("appSubtitle").textContent = t("subtitle");
+  document.getElementById("languageLabel").textContent = t("language");
+  document.getElementById("promptLabel").textContent = t("promptLabel");
+  userPrompt.placeholder = t("promptPlaceholder");
+  document.getElementById("defaultColumnLabel").textContent = t("defaultColumn");
+  generateBtn.textContent = t("generate");
+  analyzeBtn.textContent = t("analyze");
+  reviewFileBtn.textContent = t("reviewFile");
+  multiBtn.textContent = t("multi");
+  fixFormulaBtn.textContent = t("fixFormula");
+  uploadBtn.textContent = t("upload");
+  voiceBtn.textContent = t("voice");
+  clearBtn.textContent = t("clear");
+  clearHistoryBtn.textContent = t("clearHistory");
+  document.getElementById("assistantAnswerTitle").textContent = t("assistantAnswer");
+  document.getElementById("formulaTitle").textContent = t("formula");
+  document.getElementById("explanationTitle").textContent = t("explanation");
+  document.getElementById("exampleTitle").textContent = t("example");
+  document.getElementById("tipsTitle").textContent = t("tips");
+  document.getElementById("multiTitle").textContent = t("multiTitle");
+  document.getElementById("fileInsightTitle").textContent = t("fileInsight");
+  document.getElementById("fileIssuesTitle").textContent = t("fileIssues");
+  document.getElementById("columnsTitle").textContent = t("columns");
+  document.getElementById("previewTitle").textContent = t("preview");
+  document.getElementById("suggestionsTitle").textContent = t("suggestions");
+  document.getElementById("historyTitle").textContent = t("history");
+  copyBtn.textContent = t("copy");
+  copyAllBtn.textContent = t("copyAll");
+  copyAnswerBtn.textContent = t("copy");
+
+  if (!assistantAnswer.textContent.trim() || assistantAnswer.textContent === UI_TEXT.he.assistantDefault || assistantAnswer.textContent === UI_TEXT.en.assistantDefault) {
+    assistantAnswer.textContent = t("assistantDefault");
+  }
+
+  renderSuggestions();
+  renderHistory();
+  if (excelRows.length) {
+    renderFileInsight();
+    renderFileReview();
+  }
 }
 
 uploadBtn.addEventListener("click", () => {
@@ -988,7 +975,7 @@ fileInput.addEventListener("change", function (e) {
       try {
         const rows = readCsvText(evt.target.result);
         loadRows(rows, file.name);
-      } catch (error) {
+      } catch {
         showStatus(currentLang === "he" ? "לא ניתן לקרוא את קובץ ה-CSV." : "Could not read the CSV file.", "error");
       }
     };
@@ -1005,7 +992,7 @@ fileInput.addEventListener("change", function (e) {
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(firstSheet, { defval: "" });
         loadRows(rows, file.name);
-      } catch (error) {
+      } catch {
         showStatus(currentLang === "he" ? "לא ניתן לקרוא את קובץ האקסל." : "Could not read the Excel file.", "error");
       }
     };
@@ -1094,10 +1081,11 @@ fixFormulaBtn.addEventListener("click", () => {
     ? "אם עדיין זו לא הנוסחה שרצית, כתבי במילים מה היא אמורה לעשות."
     : "If this is still not the formula you wanted, describe in words what it should do.";
   tipsList.innerHTML = "";
+
   [
     currentLang === "he" ? "בדקי שהתאים והעמודות באמת קיימים." : "Check that the cells and columns really exist.",
     currentLang === "he" ? "אפשר לתקן גם נוסחה שבורה חלקית." : "You can also repair a partially broken formula."
-  ].forEach(tip => {
+  ].forEach((tip) => {
     const li = document.createElement("li");
     li.textContent = tip;
     tipsList.appendChild(li);
@@ -1111,7 +1099,6 @@ fixFormulaBtn.addEventListener("click", () => {
 });
 
 voiceBtn.addEventListener("click", startVoiceInput);
-
 clearBtn.addEventListener("click", clearAll);
 
 clearHistoryBtn.addEventListener("click", () => {
@@ -1131,7 +1118,7 @@ copyBtn.addEventListener("click", async () => {
     setTimeout(() => {
       copyBtn.textContent = t("copy");
     }, 1200);
-  } catch (error) {
+  } catch {
     showStatus(currentLang === "he" ? "לא ניתן להעתיק כרגע." : "Cannot copy right now.", "error");
   }
 });
@@ -1149,7 +1136,7 @@ copyAllBtn.addEventListener("click", async () => {
     setTimeout(() => {
       copyAllBtn.textContent = t("copyAll");
     }, 1200);
-  } catch (error) {
+  } catch {
     showStatus(currentLang === "he" ? "לא ניתן להעתיק כרגע." : "Cannot copy right now.", "error");
   }
 });
@@ -1164,7 +1151,7 @@ copyAnswerBtn.addEventListener("click", async () => {
     setTimeout(() => {
       copyAnswerBtn.textContent = t("copy");
     }, 1200);
-  } catch (error) {
+  } catch {
     showStatus(currentLang === "he" ? "לא ניתן להעתיק כרגע." : "Cannot copy right now.", "error");
   }
 });
@@ -1174,37 +1161,7 @@ languageSelect.addEventListener("change", () => {
   updateLanguageUI();
 });
 
-function renderHistory() {
-  const key = currentLang === "he" ? "helper_excel_reading_history" : "helper_excel_reading_history_en";
-  const history = JSON.parse(localStorage.getItem(key) || "[]");
-  historyList.innerHTML = "";
-
-  if (!history.length) {
-    historyList.innerHTML = `<div class="muted">${currentLang === "he" ? "אין עדיין היסטוריה." : "No history yet."}</div>`;
-    return;
-  }
-
-  history.forEach(item => {
-    const div = document.createElement("div");
-    div.className = "history-item";
-    div.textContent = item;
-    div.addEventListener("click", () => {
-      userPrompt.value = item;
-      userPrompt.focus();
-    });
-    historyList.appendChild(div);
-  });
-}
-
-function saveHistory(text) {
-  const key = currentLang === "he" ? "helper_excel_reading_history" : "helper_excel_reading_history_en";
-  const history = JSON.parse(localStorage.getItem(key) || "[]");
-  const updated = [text, ...history.filter(item => item !== text)].slice(0, 10);
-  localStorage.setItem(key, JSON.stringify(updated));
-  renderHistory();
-}
-
 updateLanguageUI();
 renderSuggestions();
 renderHistory();
-assistantAnswer.textContent = "כאן יופיעו הסברים, סיכומים, ותשובות של האפליקציה.";
+assistantAnswer.textContent = t("assistantDefault");
